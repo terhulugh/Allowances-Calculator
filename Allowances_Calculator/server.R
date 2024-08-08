@@ -102,9 +102,9 @@ calculate_travel_allowance_road <- function(name_road, rank, num_days, rate_per_
                               "Grade Level 13(Assistant Chief)" = 20000,
                               "Grade Level 14(Chief)" = 25000,
                               "Grade Level 15(Assistant Director)" = 25000,
-                              "Grade Level 16(Depurty Director)" = 37500,
+                              "Grade Level 16(Deputy Director)" = 37500,
                               "Grade Level 17(Director)" = 37500,
-                              "Permanent Secretary/Chief Executive/Borad Members" =70000, 
+                              "Permanent Secretary/Chief Executive/Board Members"=70000, 
                               "Minister/SGF/HOS"=80000,
                               stop("This function is not set up for the selected rank")
         )
@@ -127,7 +127,7 @@ calculate_travel_allowance_road <- function(name_road, rank, num_days, rate_per_
                               "Grade Level 15(Assistant Director)" = 75,
                               "Grade Level 16(Deputy Director)" = 75,
                               "Grade Level 17(Director)" = 75,
-                              "Permanent Secretary/Chief Executive/Borad Members" =150,
+                              "Permanent Secretary/Chief Executive/Board Members"=150,
                               "Minister/SGF/HOS"=150,
                               stop("This function is not set up for the selected rank")
         )
@@ -411,7 +411,7 @@ calculate_travel_allowance_estacode <- function(name_estacode, rank, num_days, e
 }
 
 # Define the function to calculate traveling allowance for air travel
-calculate_travel_allowance_estacode_supp <- function(name_estacode_supp, rank, num_days, exchange_rate, estacode_supplement_category, cash_received, travel_from, travel_to) {
+calculate_travel_allowance_estacode_supp <- function(name, rank, num_days, exchange_rate, estacode_supplement_category, cash_received, travel_from, travel_to) {
         
         # Check if travel_from is the same as travel_to
         if (travel_from == travel_to) {
@@ -438,17 +438,31 @@ calculate_travel_allowance_estacode_supp <- function(name_estacode_supp, rank, n
         # Calculate the total travel allowance in dollars
         total_estacode_allowance <- estacode_per_day * num_days
         
+        if(estacode_supplement_category == "boarding & lodging") {
+                estacode_due = total_estacode_allowance * 0.1
+        } else if (estacode_supplement_category == "lodging and cash") {
+                estacode_due = (total_estacode_allowance * 0.3)
+        } else if (estacode_supplement_category == "lodging only") {
+                estacode_due = total_estacode_allowance * 0.4 
+        } else if (estacode_supplement_category == "cash only" && num_days <= 28) {
+                estacode_due = total_estacode_allowance
+        } else if (estacode_supplement_category == "cash only" && num_days > 28) {
+                estacode_due = (estacode_per_day * 28) + (estacode_per_day * 0.3 * (num_days-28))
+        } else {
+                stop("Estacode supplemtation category selected is not valid")
+        } 
+        
         
         if(estacode_supplement_category == "boarding & lodging") {
-                total_supplementary_allowance = total_estacode_allowance * 0.1
+                total_supplementary_allowance = estacode_due
         } else if (estacode_supplement_category == "lodging and cash") {
-                total_supplementary_allowance = (total_estacode_allowance * 0.3) - cash_received
+                total_supplementary_allowance = estacode_due - cash_received
         } else if (estacode_supplement_category == "lodging only") {
-                total_supplementary_allowance = total_estacode_allowance * 0.4 
+                total_supplementary_allowance = estacode_due 
         } else if (estacode_supplement_category == "cash only" && num_days <= 28) {
-                total_supplementary_allowance = total_estacode_allowance - cash_received
+                total_supplementary_allowance = estacode_due - cash_received
         } else if (estacode_supplement_category == "cash only" && num_days > 28) {
-                total_supplementary_allowance = (total_estacode_allowance * 0.3) - cash_received
+                total_supplementary_allowance = estacode_due - cash_received
         } else {
                 stop("Estacode supplemtation category selected is not valid")
         } 
@@ -468,16 +482,17 @@ calculate_travel_allowance_estacode_supp <- function(name_estacode_supp, rank, n
                         "Travel From",
                         "Travel To",
                         "Estacode Supplement Category",
-                        "Number of Days", 
-                        "Estacode per day($)", 
+                        "Number of Days",
+                        "Estacode per day($)",
                         "Total estacode allowance($)",
+                        "Estacode Due($)",
                         "Cash Recieved($)",
-                        "Total Supplementary allowance($)",
+                        "Supplementary Allowance due($)",
                         "Exchange rate(₦/$)",
-                        "Total Supplemetary Allowance(₦)"
+                        "Total Allowance(₦)"
                 ),
                 Value = c(
-                        name_estacode_supp,
+                        name,
                         rank,
                         travel_from,
                         travel_to,
@@ -485,6 +500,7 @@ calculate_travel_allowance_estacode_supp <- function(name_estacode_supp, rank, n
                         num_days,
                         estacode_per_day,
                         total_estacode_allowance,
+                        estacode_due,
                         cash_received,
                         total_supplementary_allowance,
                         exchange_rate,
@@ -614,7 +630,7 @@ server <- function(input, output, session) {
                 travel_from <- input$travel_from_estacode_supp
                 travel_to <- input$travel_to_estacode_supp
                 
-                result_estacode_supp(calculate_travel_allowance_estacode_supp(name_estacode_supp, rank, num_days, exchange_rate, estacode_supplement_category, cash_received, travel_from, travel_to))
+                result_estacode_supp(calculate_travel_allowance_estacode_supp(name, rank, num_days, exchange_rate, estacode_supplement_category, cash_received, travel_from, travel_to))
         })
         
         observeEvent(input$calculate_warm_clothing, {
